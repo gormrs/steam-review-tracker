@@ -1,0 +1,156 @@
+{
+  "db_connection_string": "postgresql://test:test@test-osl/test?application_name=steam_stats",
+  "port": 5555,
+  "log_level": "INFO",
+  "log_count": 7,
+  "log_when": "midnight",
+  "log_path": "steam_review_scraper_service.log",
+  "apps": {
+    "440900": {
+      "track": true,
+      "ignore_zero_players": true,
+      "wordcloud_stopwords": {
+        "english": [
+          "game",
+          "early",
+          "access",
+          "yes",
+          "base",
+          "will"
+        ]
+      }
+    }
+  },
+  "languages": {
+    "english": {
+      "steam_key": "english",
+      "name": "English",
+      "track": true
+    },
+    "schinese": {
+      "steam_key": "schinese",
+      "name": "Simplified Chinese",
+      "track": true
+    },
+    "tchinese": {
+      "steam_key": "tchinese",
+      "name": "Traditional Chinese",
+      "track": true
+    },
+    "bulgarian": {
+      "steam_key": "bulgarian",
+      "name": "Bulgarian",
+      "track": true
+    },
+    "czech": {
+      "steam_key": "czech",
+      "name": "Czech",
+      "track": true
+    },
+    "danish": {
+      "steam_key": "danish",
+      "name": "Danish",
+      "track": true
+    },
+    "dutch": {
+      "steam_key": "dutch",
+      "name": "Dutch",
+      "track": true
+    },
+    "finnish": {
+      "steam_key": "finnish",
+      "name": "Finnish",
+      "track": true
+    },
+    "french": {
+      "steam_key": "french",
+      "name": "French",
+      "track": true
+    },
+    "german": {
+      "steam_key": "german",
+      "name": "German",
+      "track": true
+    },
+    "greek": {
+      "steam_key": "greek",
+      "name": "Greek",
+      "track": true
+    },
+    "hungarian": {
+      "steam_key": "hungarian",
+      "name": "Hungarian",
+      "track": true
+    },
+    "japanese": {
+      "steam_key": "japanese",
+      "name": "Japanese",
+      "track": true
+    },
+    "koreana": {
+      "steam_key": "koreana",
+      "name": "Korean",
+      "track": true
+    },
+    "norwegian": {
+      "steam_key": "norwegian",
+      "name": "Norwegian",
+      "track": true
+    },
+    "polish": {
+      "steam_key": "polish",
+      "name": "Polish",
+      "track": true
+    },
+    "portuguese": {
+      "steam_key": "portuguese",
+      "name": "Portuguese",
+      "track": true
+    },
+    "brazilian": {
+      "steam_key": "brazilian",
+      "name": "Brazilian",
+      "track": true
+    },
+    "romanian": {
+      "steam_key": "romanian",
+      "name": "Romanian",
+      "track": true
+    },
+    "russian": {
+      "steam_key": "russian",
+      "name": "Russian",
+      "track": true
+    },
+    "spanish": {
+      "steam_key": "spanish",
+      "name": "Spanish",
+      "track": true
+    },
+    "swedish": {
+      "steam_key": "swedish",
+      "name": "Swedish",
+      "track": true
+    },
+    "thai": {
+      "steam_key": "thai",
+      "name": "Thai",
+      "track": true
+    },
+    "turkish": {
+      "steam_key": "turkish",
+      "name": "Turkish",
+      "track": true
+    },
+    "ukrainian": {
+      "steam_key": "ukrainian",
+      "name": "Ukrainian",
+      "track": true
+    },
+    "italian": {
+      "steam_key": "italian",
+      "name": "Italian",
+      "track": true
+    }
+  }
+}
