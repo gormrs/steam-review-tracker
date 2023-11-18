@@ -158,10 +158,10 @@ def get_reviews_from_api(steam_appid, languages = [], num_per_page = 20, filter 
 
     return (reviews, response_data["cursor"], total_reviews)
 
-
+@profile
 def review_parse_loop(appid, languages, sort_by, save_to_db):
     current_cursor = '*'
-    seen_cursors = []
+    seen_cursors =  set()
     all_reviews = set()
 
     language_keys = [lang.steam_key for lang in languages]
@@ -198,7 +198,7 @@ def review_parse_loop(appid, languages, sort_by, save_to_db):
 
         if current_cursor != '*':
             #logging.info("remembering cursor {}".format(current_cursor))
-            seen_cursors.append(current_cursor)
+            seen_cursors.add(current_cursor)
 
         all_reviews.update(reviews)
 
