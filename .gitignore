@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Logs
+logs/
+*.log
+
+# Database files
+*.db
+
+# Other files
+steam_review_scraper.py.lprof
