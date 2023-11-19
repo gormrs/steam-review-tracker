@@ -1,7 +1,7 @@
 import datetime
 import logging
 import json
-import urllib
+import urllib3
 import re
 import os
 import time
@@ -35,6 +35,8 @@ k_steam_review_page_sort_filters = [
     "updated",
     "all"
 ]
+
+http = urllib3.PoolManager()
 
 class SteamReview(object):
     def __init__(self,
@@ -100,11 +102,11 @@ def get_reviews_from_api(steam_appid, languages = [], num_per_page = 20, filter 
     }
 
     reviews = []
-    url = "http://store.steampowered.com/appreviews/{}?json=1&{}".format(steam_appid, urllib.urlencode(options))
+    url = "https://store.steampowered.com/appreviews/{}?json=1&{}".format(steam_appid, urllib3.request.urlencode(options))
 
-    response = urllib.urlopen(url)
-    response_code = response.getcode()
-    response_content = response.read()
+    response = http.request('GET', url)
+    response_code = response.status
+    response_content = response.data
 
     if response_code != 200:
         logging.error("Could not contact steam api. Response code is {}".format(response_code))
@@ -146,7 +148,7 @@ def get_reviews_from_api(steam_appid, languages = [], num_per_page = 20, filter 
             )
 
             output.user_name = review["author"]["steamid"] #user_data.get("personaname", "Not found")
-            output.user_link = "http://steamcommunity.com/profiles/{}".format(review["author"]["steamid"]) #user_data.get("profileurl", "Not found")
+            output.user_link = "https://steamcommunity.com/profiles/{}".format(review["author"]["steamid"]) #user_data.get("profileurl", "Not found")
             output.date_posted = datetime.datetime.fromtimestamp(review.get("timestamp_created", 0))
             output.date_updated = datetime.datetime.fromtimestamp(review.get("timestamp_updated", 0))
             output.content = review.get("review", "")
@@ -158,7 +160,6 @@ def get_reviews_from_api(steam_appid, languages = [], num_per_page = 20, filter 
 
     return (reviews, response_data["cursor"], total_reviews)
 
-@profile
 def review_parse_loop(appid, languages, sort_by, save_to_db):
     current_cursor = '*'
     seen_cursors =  set()
@@ -194,6 +195,8 @@ def review_parse_loop(appid, languages, sort_by, save_to_db):
 
         if current_cursor in seen_cursors:
             logging.info("breaking on seen cursor {}. No more reviews to add".format(current_cursor))
+            # empty the queue
+            db_common.maybe_insert_batch_reviews(force_insert=True)
             break
 
         if current_cursor != '*':
@@ -205,11 +208,11 @@ def review_parse_loop(appid, languages, sort_by, save_to_db):
     return all_reviews
 
 def get_steam_game_info(appid):
-    url = "http://store.steampowered.com/api/appdetails?appids={}".format(appid)
+    url = "https://store.steampowered.com/api/appdetails?appids={}".format(appid)
 
-    response = urllib.urlopen(url)
-    response_code = response.getcode()
-    response_content = response.read()
+    response = http.request('GET', url)
+    response_code = response.status
+    response_content = response.data
 
 
     if response_code == 200:
@@ -246,7 +249,7 @@ def parse_reviews_for_app(appid, options):
 def remove_deleted_reviews(steam_appid, recent_added_reviews):
     reviews = db_common.get_reviews_for_app_and_language(steam_appid)
 
-    added_ids = [review.id for review in recent_added_reviews]
+    added_ids = {review.id for review in recent_added_reviews}
 
     languages =  common.get_settings().get_tracked_languages()
 
@@ -263,7 +266,6 @@ def remove_deleted_reviews(steam_appid, recent_added_reviews):
             num_deleted = num_deleted + 1
 
     logging.info("Deleted {} reviews".format(num_deleted))
-
 
 def main(options):
     common.get_settings() # Try to open settings to verify they are valid json
