@@ -11,6 +11,8 @@ import common
 import db_definition
 
 g_debug_mode = False
+reviews_to_insert = []
+BATCH_SIZE = 1000 
 
 def set_debug(debug_on):
     global g_debug_mode
@@ -41,6 +43,41 @@ def insert_or_update_languages(lang_key, name, steam_key):
 
 def delete_review(review_id):
     run_db_query("DELETE FROM stats_steam_reviews WHERE id = ?;", (review_id,))
+
+def maybe_insert_batch_reviews(include_user_input_columns=False, force_insert=False):
+    global reviews_to_insert
+    all_columns = [
+        "id",
+        "steam_appid",
+        "recommended",
+        "user_name",
+        "review_text",
+        "hours_played",
+        "review_url",
+        "date_posted",
+        "date_updated",
+        "helpful_amount",
+        "helpful_total",
+        "owned_games_amount",
+        "responded_by",
+        "responded_timestamp",
+        "lang_key",
+        "received_compensation"
+    ]
+
+    if include_user_input_columns:
+        extended_columns = all_columns + ["can_be_turned", "issue_list"]
+    else:
+        extended_columns = all_columns
+
+    if len(reviews_to_insert) >= BATCH_SIZE or (force_insert and reviews_to_insert):
+        upsert_query = "INSERT OR REPLACE INTO stats_steam_reviews ({0}) VALUES ({1});".format(
+            ", ".join(extended_columns), ", ".join(["?"] * len(extended_columns))
+        )
+        # Insert the batch of reviews
+        run_db_query(upsert_query, reviews_to_insert, many=True)
+        reviews_to_insert = []
+
 
 def insert_or_update_reviews(reviews, include_user_input_columns=False):
     ''' Inserts (or updates if the ID already exists) the given reviews into the DB.
@@ -76,12 +113,13 @@ def insert_or_update_reviews(reviews, include_user_input_columns=False):
 
     upsert_query = "INSERT OR REPLACE INTO stats_steam_reviews ({0}) VALUES ({1});".format(insert_column_str, insert_values_str)
 
+    data_to_insert = []
     for review in reviews:
         if not review.date_posted:
             logging.info("ReviewMissingDate,{0},{1}".format(review.review_url,review.id))
             continue
 
-        data = (
+        review_data  = (
             review.id,
             review.steam_appid,
             review.recommended,
@@ -100,15 +138,18 @@ def insert_or_update_reviews(reviews, include_user_input_columns=False):
             review.received_compensation
         )
         if include_user_input_columns:
-            data = data + (
+            review_data += (
                 review.can_be_turned,
-                review.issue_list
+                review.issue_list,
             )
-
-        data = (data)
+        data_to_insert.append(review_data)
         if g_debug_mode:
-            logging.info("Query: {0} ({1})".format(upsert_query, data))
-        run_db_query(upsert_query, data)
+            logging.info("Query: {0}".format(upsert_query))
+
+        global reviews_to_insert
+        reviews_to_insert.append(review_data)
+
+        maybe_insert_batch_reviews(include_user_input_columns)
 
 k_columns = [
     "id",
@@ -254,47 +295,59 @@ def get_total_review_count(steam_appid, language=None):
         return q_review_count[0][0]
     return 0
 
+def apply_optimizations(cursor):
+    # PRAGMA statements to optimize SQLite performance
+    pass
+
 def create_database():
     db_file = "steam.db"
 
     if os.path.isfile(db_file):
         logging.info("Database file already existed, skipping database creation")
-        return
-
-    conn = sqlite3.connect(db_file)
-    conn.text_factory = str
-    c = conn.cursor()
-
-    c.execute(db_definition.STATS_EVENTS)
-    c.execute(db_definition.STATS_STEAM_GAMES)
-    c.execute(db_definition.STATS_STEAM_LANGUAGES)
-    c.execute(db_definition.STATS_STEAM_PLAYER_COUNT)
-    c.execute(db_definition.STATS_STEAM_REVIEWS)
-    c.execute(db_definition.STAT_STEAM_REVIEW_ISSUES)
-    c.execute(db_definition.STAT_USERS)
-
-    conn.commit()
-
-def run_db_query(query, data=None):
-    db_file = "steam.db"
-    if not db_file:
-        raise Exception("Database file is not set.")
-
-    # Check if database file exists:
-    if os.path.isfile(db_file) == False:
-        raise Exception("Sqlite database file does not exists, did you run the import script? If this is a new docker spin up, set the environment variable import_database_on_startup=1")
-
-    conn = sqlite3.connect(db_file)
-    conn.text_factory = str
-    c = conn.cursor()
-    if data:
-        c.execute(query, data)
     else:
-        c.execute(query)
+        conn = sqlite3.connect(db_file)
+        conn.text_factory = str
+        c = conn.cursor()
 
-    conn.commit()
+        # Create tables
+        c.execute(db_definition.STATS_EVENTS)
+        c.execute(db_definition.STATS_STEAM_GAMES)
+        c.execute(db_definition.STATS_STEAM_LANGUAGES)
+        c.execute(db_definition.STATS_STEAM_PLAYER_COUNT)
+        c.execute(db_definition.STATS_STEAM_REVIEWS)
+        c.execute(db_definition.STAT_STEAM_REVIEW_ISSUES)
+        c.execute(db_definition.STAT_USERS)
 
-    try:
-        return c.fetchall()
-    except Exception:
-        return None
+        conn.commit()
+
+    conn = sqlite3.connect(db_file)
+    c = conn.cursor()
+    apply_optimizations(c)
+
+    conn.close()
+
+def run_db_query(query, data=None, many=False):
+    db_file = "steam.db"
+    if not os.path.isfile(db_file):
+        raise Exception("SQLite database file does not exist.")
+
+
+    with sqlite3.connect(db_file) as conn:
+        conn.text_factory = str
+        c = conn.cursor()
+        if many and data is not None:
+            c.executemany(query, data)
+        elif data is not None:
+            c.execute(query, data)
+        else:
+            c.execute(query)
+        conn.commit()
+
+        try:
+            return c.fetchall()
+        except sqlite3.DatabaseError as e:
+            logging.error("Database error: %s", e)
+            return None
+        except Exception as e:
+            logging.error("Exception in query: %s", e)
+            return None
