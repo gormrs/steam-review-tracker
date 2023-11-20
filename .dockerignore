@@ -12,3 +12,11 @@ logs/
 # Other files
 steam_review_scraper.py.lprof
 profile_results.prof
+
+*.lprof
+*.prof
+.vscode/
+.git
+.gitignore
+readme.md
+*.md

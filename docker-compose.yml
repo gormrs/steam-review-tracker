@@ -1,0 +1,10 @@
+services:
+  steamworker_2252570:
+    build: .
+    environment:
+    - APP_ID=2252570
+  steamworker_440900:
+    build: .
+    environment:
+    - APP_ID=440900
+version: '3'

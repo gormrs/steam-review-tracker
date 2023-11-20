@@ -268,24 +268,27 @@ def remove_deleted_reviews(steam_appid, recent_added_reviews):
     logging.info("Deleted {} reviews".format(num_deleted))
 
 def main(options):
-    common.get_settings() # Try to open settings to verify they are valid json
 
     db_common.create_database()
 
-    apps = common.get_settings().get_tracked_apps()
-    appids = [app.appid for app in apps]
+    app_id = os.environ.get('APP_ID')
+
+    if not app_id:
+        logging.error("No APP_ID environment variable set.")
+        return 1
+
+    logging.info("Parsing reviews for app ID: {0}".format(app_id))
     
-    logging.info("Parsing reviews for: {0}".format(appids))
-    for appid in appids:
-        ret = parse_reviews_for_app(appid, options)
+    ret = parse_reviews_for_app(app_id, options)
 
-        remove_deleted_reviews(appid, ret)
+    remove_deleted_reviews(app_id, ret)
 
-        if ret != 0:
-            if type(ret) is set:
-                return 0
-            else:
-                return ret
+    if ret != 0:
+        if type(ret) is set:
+            return 0
+        else:
+            return ret
+
     return 0
 
 if __name__ == "__main__":
