@@ -14,3 +14,19 @@ python 2.7 and docker
 ## Usage
 python steam_review_scraper.py
 
+# Gorm Rønning Sørbye
+
+## My Changes
+
+1. Switched from list to set for o(1) lookup where relevant
+2. Uses urllib3 for http pooling, avoid making new connections when fetching reviews
+3. Batches querys to sqlite database, reduces number of writes to disk making it faster
+4. Uses docker and docker compose to create a container for each of the steam apps in requirements.txt
+
+## My assumption
+
+Stay on python 2.7
+Focus on performance upgrades not features
+By being "mindful" about deployment i can change the code ot take a single app argument and run it in a docker container
+
+Thank you for the opportunity to work on this, it was fun!
